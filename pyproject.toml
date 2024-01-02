@@ -20,7 +20,7 @@ bottle = "0.12.25"
 gunicorn = "21.2.0"
 mixer = "7.2.2"
 WebTest = "3.0.0"
-fudgeo = "0.7.0"
+fudgeo = "0.7.1"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.19.0"
