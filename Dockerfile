@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.source https://github.com/dbca-wa/caddy
 
 RUN apt-get update -y \
   && apt-get upgrade -y \
-  && apt-get install -y libmagic-dev gcc binutils gdal-bin proj-bin python3-dev libpq-dev \
+  && apt-get install -y libmagic-dev gcc binutils gdal-bin proj-bin python3-dev libpq-dev libev-dev \
   && rm -rf /var/lib/apt/lists/* \
   && pip install --upgrade pip
 
@@ -26,10 +26,10 @@ RUN groupadd -g "${GID}" appuser \
   && useradd --no-create-home --no-log-init --uid "${UID}" --gid "${GID}" appuser
 
 # Install the project.
-COPY geocoder.py gunicorn.py manage.py ./
 COPY caddy ./caddy
 COPY shack ./shack
+COPY geocoder.py gunicorn.py manage.py ./
 
 USER ${UID}
 EXPOSE 8080
-CMD ["gunicorn", "caddy.wsgi", "--config", "gunicorn.py"]
+CMD ["python", "geocoder.py"]

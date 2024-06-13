@@ -16,12 +16,12 @@ requests = "2.32.3"
 django-tastypie = "0.14.7"
 ujson = "5.10.0"
 bottle = "0.12.25"
-gunicorn = "22.0.0"
 mixer = "7.2.2"
 WebTest = "3.0.0"
 fudgeo = "0.7.1"
 sqlalchemy = "2.0.30"
 azure-storage-blob = "12.20.0"
+bjoern = "3.2.2"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.25.0"
