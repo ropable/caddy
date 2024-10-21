@@ -22,7 +22,7 @@ webtest = "3.0.1"
 fudgeo = "0.8.0"
 sqlalchemy = "2.0.35"
 azure-storage-blob = "12.23.1"
-orjson = "3.10.7"
+orjson = "3.10.9"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.28.0"
