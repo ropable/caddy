@@ -551,12 +551,12 @@ typing = ["typing-extensions (>=4.12.2)"]
 
 [[package]]
 name = "fudgeo"
-version = "0.8.0"
+version = "0.8.1"
 description = "GeoPackage support from Python.  fudgeo is a lightweight package for creating OGC GeoPackages, Feature Classes, and Tables.  Easily read and write geometries and attributes to Feature Classes and Tables using regular Python objects and SQLite syntax."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "fudgeo-0.8.0-py3-none-any.whl", hash = "sha256:a8fcbd7ff678550e9fe5d6fed703fa366a6bc0e3a735be8696495f4e2af66b49"},
+    {file = "fudgeo-0.8.1-py3-none-any.whl", hash = "sha256:742912bd6b6e38d72bf8944cffb716aa2d2dd19e411d6409b815fee8a6cbe1d1"},
 ]
 
 [package.dependencies]
@@ -1611,4 +1611,4 @@ tests = ["PasteDeploy", "WSGIProxy2", "coverage", "pyquery", "pytest", "pytest-c
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "48001854425d88892a79559a677aac14b23294311654c48c90ef9df1193b9b9f"
+content-hash = "72c78181b90450e3f74bc640827b09df74ba7746cba7ce838544926c204929b8"
