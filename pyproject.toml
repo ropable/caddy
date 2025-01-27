@@ -27,7 +27,7 @@ ipython = "^8.30.0"
 [tool.poetry.group.dev.dependencies]
 ipython = "^8.31.0"
 ipdb = "^0.13.13"
-pre-commit = "^4.0.1"
+pre-commit = "^4.1.0"
 
 # Reference: https://docs.astral.sh/ruff/configuration/
 [tool.ruff]
