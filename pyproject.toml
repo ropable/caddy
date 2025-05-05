@@ -17,7 +17,7 @@ dependencies = [
   "fudgeo==1.0.0",
   "sqlalchemy==2.0.40",
   "azure-storage-blob==12.25.1",
-  "orjson==3.10.16",
+  "orjson==3.10.18",
 ]
 
 [dependency-groups]
