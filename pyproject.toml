@@ -12,7 +12,7 @@ dependencies = [
   "dj-database-url == 2.3.0",
   "django-extensions==4.1",
   "requests==2.32.3",
-  "bottle==0.13.2",
+  "bottle==0.13.3",
   "gunicorn == 23.0.0",
   "fudgeo==1.1.0",
   "sqlalchemy==2.0.40",
