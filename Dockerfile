@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Prepare the base environment.
-FROM python:3.12-slim-bookworm AS builder_base
+FROM python:3.13-slim-bookworm AS builder_base
 
 # This approximately follows this guide: https://hynek.me/articles/docker-uv/
 # Which creates a standalone environment with the dependencies.
@@ -21,10 +21,6 @@ COPY --from=ghcr.io/astral-sh/uv:0.6 /uv /uvx /bin/
 # The trailing slash makes COPY create `/_lock/` automagically.
 COPY pyproject.toml uv.lock /_lock/
 
-# Install OS requirements to build packages.
-RUN apt-get update -y \
-  && apt-get install -y gcc
-
 # Synchronize dependencies.
 # This layer is cached until uv.lock or pyproject.toml change.
 RUN --mount=type=cache,target=/root/.cache \
@@ -35,14 +31,14 @@ RUN --mount=type=cache,target=/root/.cache \
 
 ##################################################################################
 
-FROM python:3.12-slim-bookworm
+FROM python:3.13-slim-bookworm
 LABEL org.opencontainers.image.authors=asi@dbca.wa.gov.au
 LABEL org.opencontainers.image.source=https://github.com/dbca-wa/caddy
 
 # Install OS packages
-RUN apt-get update -y \
+RUN apt-get update \
   && apt-get upgrade -y \
-  && apt-get install -y gdal-bin proj-bin \
+  && apt-get install -y --no-install-recommends gdal-bin proj-bin \
   && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user.
@@ -57,9 +53,9 @@ ENV PYTHONUNBUFFERED=1
 
 # Install the project.
 WORKDIR /app
-COPY geocoder.py gunicorn.py manage.py ./
+COPY geocoder.py hypercorn.toml manage.py ./
 COPY caddy ./caddy
 COPY shack ./shack
 USER app
 EXPOSE 8080
-CMD ["gunicorn", "caddy.wsgi", "--config", "gunicorn.py"]
+CMD ["hypercorn", "geocoder:application", "--config", "hypercorn.toml"]

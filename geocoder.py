@@ -2,99 +2,73 @@
 import os
 import re
 
-import orjson
-from bottle import Bottle, HTTPResponse, request, response, static_file
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.sql import text
-
-from caddy.utils import env
+from quart import Quart, abort, g, jsonify, render_template, request, send_from_directory
+from quart_db import QuartDB
 
 dot_env = os.path.join(os.getcwd(), ".env")
 if os.path.exists(dot_env):
     from dotenv import load_dotenv
 
     load_dotenv()
-app = application = Bottle()
+app = application = Quart(__name__, static_folder="caddy/static", template_folder="caddy/templates")
+database_url = os.getenv("DATABASE_URL", "").replace("postgis", "postgresql")
+db = QuartDB(app, url=database_url)
 
-
-# Database connection - create a DB engine and a scoped session for queries.
-# https://docs.sqlalchemy.org/en/20/orm/contextual.html#unitofwork-contextual
-if "TEST_DATABASE_URL" in os.environ and env("TEST_DATABASE_URL"):
-    database_url = env("TEST_DATABASE_URL").replace("postgis", "postgresql+psycopg")
-else:
-    database_url = env("DATABASE_URL").replace("postgis", "postgresql+psycopg")
-db_engine = create_engine(database_url)
-Session = sessionmaker(bind=db_engine, autoflush=True)
 
 # Regex patterns
 LON_LAT_PATTERN = re.compile(r"(?P<lon>-?[0-9]+.[0-9]+),\s*(?P<lat>-?[0-9]+.[0-9]+)")
 ALPHANUM_PATTERN = re.compile(r"[^A-Za-z0-9\s]+")
 
 
-@app.route("/")
-def index():
-    return static_file("index.html", root="caddy/templates")
-
-
 @app.route("/favicon.ico")
-def favicon():
-    return static_file("favicon.ico", root="caddy/static")
+async def favicon():
+    return await send_from_directory("caddy/static", "favicon.ico")
 
 
-@app.route("/livez")
-def liveness():
+@app.get("/livez")
+async def liveness():
     return "OK"
 
 
-@app.route("/readyz")
-def readiness():
-    try:
-        with Session.begin() as session:
-            session.execute(text("SELECT 1")).fetchone()
-            session.close()
-        return "OK"
-    except:
-        return HTTPResponse(status=500, body="Error")
+@app.get("/readyz")
+async def readiness():
+    # Returns a HTTP 500 error if database connection unavailable.
+    await g.connection.fetch_val("SELECT 1")
+    return "OK"
 
 
-@app.route("/api/<object_id>")
-def detail(object_id):
-    """This route will return details of a single land parcel, serialised as a JSON object."""
-    # Validate `object_id`: this value needs be castable as an integer, even though we handle it as a string.
-    try:
-        int(object_id)
-    except ValueError:
-        response.status = 400
-        return "Bad request"
+@app.get("/")
+async def index():
+    return await render_template("index.html")
 
-    response.content_type = "application/json"
-    sql = text("""SELECT object_id, address_nice, owner, ST_AsText(centroid), ST_AsText(envelope), ST_AsText(boundary), data
-               FROM shack_address
-               WHERE object_id = :object_id""")
-    sql = sql.bindparams(object_id=object_id)
-    with Session.begin() as session:
-        result = session.execute(sql).fetchone()
-        session.close()
 
-    if result:
-        return orjson.dumps(
+@app.get("/api/<int:object_id>")
+async def detail(object_id):
+    record = await g.connection.fetch_one(
+        """SELECT object_id, address_nice, owner, ST_AsText(centroid), ST_AsText(envelope), ST_AsText(boundary), data
+        FROM shack_address
+        WHERE object_id = :object_id""",
+        {"object_id": str(object_id)},
+    )
+
+    if record:
+        return jsonify(
             {
-                "object_id": result[0],
-                "address": result[1],
-                "owner": result[2],
-                "centroid": result[3],
-                "envelope": result[4],
-                "boundary": result[5],
-                "data": result[6],
+                "object_id": record[0],
+                "address": record[1],
+                "owner": record[2],
+                "centroid": record[3],
+                "envelope": record[4],
+                "boundary": record[5],
+                "data": record[6],
             }
         )
     else:
-        return "{}"
+        return jsonify({})
 
 
-@app.route("/api/geocode")
-def geocode():
+@app.get("/api/geocode")
+async def geocode():
     """This route will accept a query parameter (`q` or `point`), and query for matching land parcels.
     `point` must be a string that parses as <float>,<float> and will be used to query for intersection with the `boundary`
     spatial column.
@@ -105,11 +79,10 @@ def geocode():
     defaults to a maximum of five results (no sorting is carried out, so these are simply the first five results from the
     query.
     """
-    q = request.query.q or ""
-    point = request.query.point or ""
+    q = request.args.get("q", "", type=str)
+    point = request.args.get("point", "", type=str)
     if not q and not point:
-        response.status = 400
-        return "Bad request"
+        abort(400, "Invalid request parameters")
 
     # Point intersection query
     if point:  # Must be in the format lon,lat
@@ -120,37 +93,32 @@ def geocode():
             try:
                 lon, lat = float(lon), float(lat)
             except ValueError:
-                response.status = 400
-                return "Bad request"
+                abort(400, "Invalid coordinate")
 
             ewkt = f"SRID=4326;POINT({lon} {lat})"
-            sql = text("""SELECT object_id, address_nice, owner, ST_AsText(centroid), ST_AsText(envelope), ST_AsText(boundary), data
-                       FROM shack_address
-                       WHERE ST_Intersects(boundary, ST_GeomFromEWKT(:ewkt))""")
-            sql = sql.bindparams(ewkt=ewkt)
-            with Session.begin() as session:
-                result = session.execute(sql).fetchone()
-                session.close()
-
+            record = await g.connection.fetch_one(
+                """SELECT object_id, address_nice, owner, ST_AsText(centroid), ST_AsText(envelope), ST_AsText(boundary), data
+                FROM shack_address
+                WHERE ST_Intersects(boundary, ST_GeomFromEWKT(:ewkt))""",
+                {"ewkt": ewkt},
+            )
             # Serialise and return any query result.
-            response.content_type = "application/json"
-            if result:
-                return orjson.dumps(
+            if record:
+                return jsonify(
                     {
-                        "object_id": result[0],
-                        "address": result[1],
-                        "owner": result[2],
-                        "centroid": result[3],
-                        "envelope": result[4],
-                        "boundary": result[5],
-                        "data": result[6],
+                        "object_id": record[0],
+                        "address": record[1],
+                        "owner": record[2],
+                        "centroid": record[3],
+                        "envelope": record[4],
+                        "boundary": record[5],
+                        "data": record[6],
                     }
                 )
             else:
-                return "{}"
+                return jsonify({})
         else:
-            response.status = 400
-            return "Bad request"
+            abort(400, "Invalid coordinate")
 
     # Address query
     # Sanitise the input query: remove any non-alphanumeric/whitespace characters.
@@ -159,44 +127,36 @@ def geocode():
     tsquery = "&".join(words)
 
     # Default to return a maximum of five results, allow override via `limit`.
-    if request.query.limit:
-        try:
-            limit = int(request.query.limit)
-        except ValueError:
-            response.status = 400
-            return "Bad request"
+    if "limit" in request.args:
+        limit = request.args.get("limit", type=int)
     else:
         limit = 5
 
-    sql = text("""SELECT object_id, address_nice, owner, ST_X(centroid), ST_Y(centroid)
-               FROM shack_address
-               WHERE tsv @@ to_tsquery(:tsquery)
-               LIMIT :limit""")
-    sql = sql.bindparams(tsquery=tsquery, limit=limit)
-    with Session.begin() as session:
-        result = session.execute(sql).fetchall()
-        session.close()
+    records = await g.connection.fetch_all(
+        """SELECT object_id, address_nice, owner, ST_X(centroid), ST_Y(centroid)
+        FROM shack_address
+        WHERE tsv @@ to_tsquery(:tsquery)
+        LIMIT :limit""",
+        {"tsquery": tsquery, "limit": limit},
+    )
 
     # Serialise and return any query results.
-    response.content_type = "application/json"
-    if result:
-        j = []
-        for i in result:
-            j.append(
+    if records:
+        return jsonify(
+            [
                 {
-                    "object_id": i[0],
-                    "address": i[1],
-                    "owner": i[2],
-                    "lon": i[3],
-                    "lat": i[4],
+                    "object_id": record[0],
+                    "address": record[1],
+                    "owner": record[2],
+                    "lon": record[3],
+                    "lat": record[4],
                 }
-            )
-        return orjson.dumps(j)
+                for record in records
+            ]
+        )
     else:
-        return "[]"
+        return jsonify([])
 
 
 if __name__ == "__main__":
-    from bottle import run
-
-    run(application, host="0.0.0.0", port=env("PORT", 8080))
+    application.run(host="0.0.0.0", port=os.environ.get("PORT", 8080), use_reloader=True)
