@@ -10,7 +10,7 @@ if os.path.exists(dot_env):
     from dotenv import load_dotenv
 
     load_dotenv()
-app = application = Quart(__name__, static_folder="caddy/static", template_folder="caddy/templates")
+app = Quart(__name__, static_folder="caddy/static", template_folder="caddy/templates")
 database_url = os.getenv("DATABASE_URL", "").replace("postgis", "postgresql")
 db = QuartDB(app, url=database_url)
 
@@ -159,4 +159,4 @@ async def geocode():
 
 
 if __name__ == "__main__":
-    application.run(host="0.0.0.0", port=os.environ.get("PORT", 8080), use_reloader=True)
+    app.run(host="0.0.0.0", port=os.environ.get("PORT", 8080), use_reloader=True)

@@ -58,4 +58,4 @@ COPY caddy ./caddy
 COPY shack ./shack
 USER app
 EXPOSE 8080
-CMD ["hypercorn", "geocoder:application", "--config", "hypercorn.toml"]
+CMD ["hypercorn", "geocoder:app", "--config", "hypercorn.toml"]
