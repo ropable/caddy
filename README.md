@@ -11,11 +11,11 @@ The recommended way to set up this project for development is using
 to install and manage a Python virtual environment.
 With uv installed, install the required Python version (see `pyproject.toml`). Example:
 
-    uv python install 3.12
+    uv python install 3.13
 
 Change into the project directory and run:
 
-    uv python pin 3.12
+    uv python pin 3.13
     uv sync
 
 Activate the virtualenv like so:
@@ -24,7 +24,7 @@ Activate the virtualenv like so:
 
 To run Python commands in the activated virtualenv, thereafter run them like so:
 
-    python manage.py
+    ipython
 
 Manage new or updated project dependencies with uv also, like so:
 
@@ -36,34 +36,31 @@ This project uses environment variables (in a `.env` file) to define application
 Required settings are as follows:
 
     DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/NAME
-    SECRET_KEY=ThisIsASecretKey
     AZURE_ACCOUNT_NAME=azureaccountname
     AZURE_ACCOUNT_KEY=azureaccountsecret
     AZURE_CONTAINER=containername
 
-## Usage
+## Running
+
+To run a local copy of the application:
 
 Run the frontend application with `python geocoder.py` (the default port
-is 8080, which can be overridden by defining a `PORT` environment variable.
+is 8080, which can be overridden by defining a `PORT` environment variable).
 
-Run Django console commands manually:
+    python geocoder.py
+    # Serve via HyperCorn instead of Quart (edit hypercorn.toml if required):
+    hypercorn geocoder:app --config hypercorn.toml --reload
+
+Django management commands may also be run as normal:
 
     python manage.py shell_plus
 
-## Testing
-
-Uncomment the `TEST_DATABASE_URL` value to run unit tests:
-
-    python manage.py test --keepdb -v2
-
-Comment this again to use `runserver`.
-
 ## Background
 
-The **shack** application contains a single model, **Address**. This model
+The `shack` application contains a single model, `Address`. This model
 is used to store the relevant address fields of the cadastre dataset,
 plus each land parcel's centroid and spatial bounds. A utility script in
-**shack/utils.py** is used to query the cadastre WFS layer to mirror the
+`shack/utils.py` is used to query the cadastre WFS layer to mirror the
 data. Address fields are rendering into a single document, stored in the
 _address_text_ field.
 
@@ -78,14 +75,13 @@ to query the tsvector field and return any results. Returned data is
 deliberately limited to a "human readable" address, object centroid and
 bounding box.
 
-Further reference:
-<http://www.postgresql.org/docs/current/static/textsearch.html>
+Further reference: <http://www.postgresql.org/docs/current/static/textsearch.html>
 
 ## Pre-commit hooks
 
 This project includes the following pre-commit hooks:
 
-- TruffleHog: https://docs.trufflesecurity.com/docs/scanning-git/precommit-hooks/
+- TruffleHog: <https://docs.trufflesecurity.com/docs/scanning-git/precommit-hooks/>
 
 Pre-commit hooks may have additional system dependencies to run. Optionally
 install pre-commit hooks locally like so:
