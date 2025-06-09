@@ -15,7 +15,7 @@ dependencies = [
   "bottle==0.13.2",
   "gunicorn == 23.0.0",
   "fudgeo==1.2.0",
-  "sqlalchemy==2.0.40",
+  "sqlalchemy==2.0.41",
   "azure-storage-blob==12.25.1",
   "orjson==3.10.18",
 ]
