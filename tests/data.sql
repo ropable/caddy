@@ -1,0 +1,29 @@
+MERGE INTO shack_address
+USING (VALUES(1))
+AS vals (id)
+ON shack_address.id = vals.id
+WHEN NOT MATCHED THEN
+INSERT (
+    id,
+    object_id,
+    address_text,
+    address_nice,
+    centroid,
+    envelope,
+    data,
+    owner,
+    boundary
+)
+VALUES (
+    1,
+    1,
+    '(Lot 1001) 1 NOVELTY ROAD SPRINGFIELD 6000',
+    '(Lot 1001) 1 NOVELTY ROAD SPRINGFIELD 6000',
+    ST_GeomFromText('POINT(-71.064544 42.28787)'),
+    ST_GeomFromText('POLYGON((-71.1776585052917 42.3902909739571,-71.1776820268866 42.3903701743239,
+-71.1776063012595 42.3903825660754,-71.1775826583081 42.3903033653531,-71.1776585052917 42.3902909739571))'),
+    '{"locality": "SPRINGFIELD", "postcode": "6000", "road_name": "NOVELTY", "road_type": "RD", "lot_number": "1001", "house_number": "1"}',
+    'JOHN SMITH',
+    ST_GeomFromText('POLYGON((-71.1776585052917 42.3902909739571,-71.1776820268866 42.3903701743239,
+-71.1776063012595 42.3903825660754,-71.1775826583081 42.3903033653531,-71.1776585052917 42.3902909739571))')
+);

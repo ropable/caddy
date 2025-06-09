@@ -44,10 +44,7 @@ Required settings are as follows:
 
 To run a local copy of the application:
 
-Run the frontend application with `python geocoder.py` (the default port
-is 8080, which can be overridden by defining a `PORT` environment variable).
-
-    python geocoder.py
+    quart --debug --app geocoder run --reload --host 0 --port 8080
     # Serve via HyperCorn instead of Quart (edit hypercorn.toml if required):
     hypercorn geocoder:app --config hypercorn.toml --reload
 
